@@ -24,12 +24,7 @@ class LinearRegression(object):
             Returns:
                 pred_labels (np.array): target of shape (N,regression_target_size)
         """
-        ##
-        ###
-        #### YOUR CODE HERE!
-        ###
-        ##
-
+        pred_regression_targets = np.linalg.pinv(training_data) @ training_labels
         return pred_regression_targets
 
 
@@ -49,3 +44,5 @@ def predict(self, test_data):
         ##
 
         return pred_regression_targets
+
+
