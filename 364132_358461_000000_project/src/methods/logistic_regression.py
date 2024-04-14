@@ -19,6 +19,48 @@ class LogisticRegression(object):
         """
         self.lr = lr
         self.max_iters = max_iters
+        self.weights = None
+
+    def __softmax(self, data: np.array, W: np.array):
+        """
+          Softmax function for multi-class logistic regression.
+
+          Args:
+              data (array): Input data of shape (N, D)
+              W (array): Weights of shape (D, C) where C is the number of classes
+          Returns:
+              array of shape (N, C): Probability array where each value is in the
+                  range [0, 1] and each row sums to 1.
+                  The row i corresponds to the prediction of the ith data sample, and
+                  the column j to the jth class. So element [i, j] is P(y_i=k | x_i, W)
+          """
+        y1 = np.exp(data @ W)
+        return y1 / np.sum(y1, axis=1, keepdims=True)
+
+    def __gradient_logistic_multi(self, data: np.array, labels: np.array, W: np.array):
+        """
+        Compute the gradient of the entropy for multi-class logistic regression.
+
+        Args:
+            data (array): Input data of shape (N, D)
+            labels (array): Labels of shape  (N, C)  (in one-hot representation)
+            W (array): Weights of shape (D, C)
+        Returns:
+            grad (np.array): Gradients of shape (D, C)
+        """
+        return np.dot(data.T, (self.__softmax(data, W) - labels))
+
+    def __logistic_regression_predict_multi(self, data, W):
+        """
+        Prediction the label of data for multi-class logistic regression.
+
+        Args:
+            data (array): Dataset of shape (N, D).
+            W (array): Weights of multi-class logistic regression model of shape (D, C)
+        Returns:
+            array of shape (N,): Label predictions of data.
+        """
+        return np.argmax(self.__softmax(data, W), axis=1)
 
 
     def fit(self, training_data, training_labels):
@@ -31,11 +73,14 @@ class LogisticRegression(object):
         Returns:
             pred_labels (array): target of shape (N,)
         """
-        ##
-        ###
-        #### WRITE YOUR CODE HERE!
-        ###
-        ##
+        D = np.array(training_data).shape[1] # number of features
+        C = 1
+        # Random initialization of the weights
+        self.weights = np.random.normal(0, 0.1, (D, C))
+        for it in range(self.max_iters):
+            self.weights = self.weights - self.lr * self.__gradient_logistic_multi(training_data, training_labels, self.weights)
+
+        pred_labels = self.__logistic_regression_predict_multi(training_data, self.weights)
         return pred_labels
 
     def predict(self, test_data):
@@ -47,9 +92,5 @@ class LogisticRegression(object):
         Returns:
             pred_labels (array): labels of shape (N,)
         """
-        ##
-        ###
-        #### WRITE YOUR CODE HERE!
-        ###
-        ##
+        pred_labels = self.__logistic_regression_predict_multi(test_data, self.weights)
         return pred_labels
