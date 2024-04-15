@@ -44,11 +44,26 @@ def main(args):
 
     # Make a validation set (it can overwrite xtest, ytest)
     if not args.test:
-        ### WRITE YOUR CODE HERE
+        num_samples = xtrain.shape[0]
+        train_part = 0.8 # Nombre arbitraire, il faudrait pouvoir le donner en argument
+        r_inds = np.random.permutation(num_samples) # We shuffle the indices to shuffle the data
+        i_train = int(num_samples * train_part) # Final index of the total data that is used for training
+        
+        xtest = xtrain[r_inds[i_train:]]
+        ytest = ytrain[r_inds[i_train:]]
+        xtrain = xtrain[r_inds[:i_train]]
+        ytrain = ytrain[r_inds[:i_train]]
         pass
     
-    ### WRITE YOUR CODE HERE to do any other data processing
-
+    # Normalizing the data
+    mean_train = np.mean(xtrain, keepdims = True) # Computing the mean
+    std_train = np.std(xtrain, keepdims = True) # and the standard deviation of the training set
+    normalize_fn(xtrain, mean_train, std_train) # Normalize train
+    normalize_fn(xtest, mean_train, std_train) # and test data
+    
+    # Adding bias
+    append_bias_term(xtrain)
+    append_bias_term(xtest)
     
 
     ## 3. Initialize the method you want to use.
