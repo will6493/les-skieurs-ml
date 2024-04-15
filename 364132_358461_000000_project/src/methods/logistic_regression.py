@@ -34,8 +34,10 @@ class LogisticRegression(object):
                   The row i corresponds to the prediction of the ith data sample, and
                   the column j to the jth class. So element [i, j] is P(y_i=k | x_i, W)
           """
-        y1 = np.exp(data @ W)
-        return y1 / np.sum(y1, axis=1, keepdims=True)
+        expK = np.exp(data @ W)
+        sumJ = np.sum(expK, axis = 1, keepdims = True)
+        y = expK/sumJ
+        return y
 
     def __gradient_logistic_multi(self, data: np.array, labels: np.array, W: np.array):
         """
@@ -48,7 +50,9 @@ class LogisticRegression(object):
         Returns:
             grad (np.array): Gradients of shape (D, C)
         """
-        return np.dot(data.T, (self.__softmax(data, W) - labels))
+        y = self.__softmax(data, W)
+        grad = data.T @ (y - labels)
+        return grad
 
     def __logistic_regression_predict_multi(self, data, W):
         """
@@ -60,7 +64,12 @@ class LogisticRegression(object):
         Returns:
             array of shape (N,): Label predictions of data.
         """
-        return np.argmax(self.__softmax(data, W), axis=1)
+        N = len(data)
+        y = self.__softmax(data, W)
+        predict = []
+        for i in range(N):
+            predict.append(np.argmax(y[i]))
+        return np.array(predict)
 
 
     def fit(self, training_data, training_labels):
@@ -74,12 +83,11 @@ class LogisticRegression(object):
             pred_labels (array): target of shape (N,)
         """
         D = np.array(training_data).shape[1] # number of features
-        C = 1
+        C = 1 # number of classes
         # Random initialization of the weights
         self.weights = np.random.normal(0, 0.1, (D, C))
         for it in range(self.max_iters):
             self.weights = self.weights - self.lr * self.__gradient_logistic_multi(training_data, training_labels, self.weights)
-
         pred_labels = self.__logistic_regression_predict_multi(training_data, self.weights)
         return pred_labels
 

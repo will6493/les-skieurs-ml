@@ -64,7 +64,6 @@ def main(args):
     # Adding bias
     append_bias_term(xtrain)
     append_bias_term(xtest)
-    
 
     ## 3. Initialize the method you want to use.
 

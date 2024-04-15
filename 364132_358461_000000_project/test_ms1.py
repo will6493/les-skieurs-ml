@@ -123,7 +123,6 @@ class TestProject(unittest.TestCase):
     def test_3b_logistic_regression(self):
         """Test Logistic Regression."""
         self.title("Testing Logistic Regression")
-        print("bite")
         logistic_regression = self._import_and_test("logistic_regression", "LogisticRegression",
                                                     lr=1e-3, max_iters=500)
 
