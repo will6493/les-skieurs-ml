@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..utils import get_n_classes, label_to_onehot, onehot_to_label
+from ..utils import get_n_classes, label_to_onehot, onehot_to_label, accuracy_fn
 
 
 class LogisticRegression(object):
@@ -51,7 +51,7 @@ class LogisticRegression(object):
             grad (np.array): Gradients of shape (D, C)
         """
         y = self.__softmax(data, W)
-        grad = data.T @ (y - labels)
+        grad = data.T @ (y - label_to_onehot(labels))
         return grad
 
     def __logistic_regression_predict_multi(self, data, W):
@@ -82,13 +82,15 @@ class LogisticRegression(object):
         Returns:
             pred_labels (array): target of shape (N,)
         """
-        D = np.array(training_data).shape[1] # number of features
-        C = 1 # number of classes
+        D = training_data.shape[1] # number of features
+        C = get_n_classes(training_labels) # number of classes
         # Random initialization of the weights
         self.weights = np.random.normal(0, 0.1, (D, C))
         for it in range(self.max_iters):
             self.weights = self.weights - self.lr * self.__gradient_logistic_multi(training_data, training_labels, self.weights)
-        pred_labels = self.__logistic_regression_predict_multi(training_data, self.weights)
+            pred_labels = self.__logistic_regression_predict_multi(training_data, self.weights)
+            if accuracy_fn(pred_labels, training_labels) == 100:
+                break
         return pred_labels
 
     def predict(self, test_data):
