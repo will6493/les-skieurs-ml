@@ -75,9 +75,14 @@ def main(args):
     if args.method == "dummy_classifier":
         method_obj = DummyClassifier(arg1=1, arg2=2)
 
-    elif ...:  ### WRITE YOUR CODE HERE
-        pass
+    elif args.method == "knn":
+        method_obj = KNN(k=args.K, task_kind=args.task_kind)
+    
+    elif args.method == "linear_regression":
+        method_obj = LinearRegression(lmda=args.lmda)
 
+    elif args.method == "logistic_regression":
+        method_obj = LogisticRegression(lr=args.lr, max_iter=args.max_iters)
 
     ## 4. Train and evaluate the method
 
@@ -126,7 +131,6 @@ if __name__ == '__main__':
     parser.add_argument('--data_path', default="data", type=str, help="path to your dataset")
     parser.add_argument('--data_type', default="features", type=str, help="features/original(MS2)")
     parser.add_argument('--lmda', type=float, default=10, help="lambda of linear/ridge regression")
-    parser.add_argument('--K', type=int, default=1, help="number of neighboring datapoints used for knn")
     parser.add_argument('--lr', type=float, default=1e-5, help="learning rate for methods with learning rate")
     parser.add_argument('--max_iters', type=int, default=100, help="max iters for methods which are iterative")
     parser.add_argument('--test', action="store_true", help="train on whole training data and evaluate on the test data, otherwise use a validation set")
@@ -137,6 +141,10 @@ if __name__ == '__main__':
     # MS2 arguments
     parser.add_argument('--nn_type', default="cnn", help="which network to use, can be 'Transformer' or 'cnn'")
     parser.add_argument('--nn_batch_size', type=int, default=64, help="batch size for NN training")
+
+    # kNN arguments
+    parser.add_argument('--K', type=int, default=1, help="number of neighboring datapoints used for knn")
+    parser.add_argument('--task_kind', default="classification", help="classification / regression")
 
     # "args" will keep in memory the arguments and their values,
     # which can be accessed as "args.data", for example.
