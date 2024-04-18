@@ -25,7 +25,7 @@ def main(args):
 
     ##EXTRACTED FEATURES DATASET
     if args.data_type == "features":
-        feature_data = np.load('features.npz',allow_pickle=True)
+        feature_data = np.load(args.data_path + '/features.npz',allow_pickle=True)
         xtrain, xtest, ytrain, ytest, ctrain, ctest =feature_data['xtrain'],feature_data['xtest'],\
         feature_data['ytrain'],feature_data['ytest'],feature_data['ctrain'],feature_data['ctest']
 
@@ -51,19 +51,27 @@ def main(args):
         
         xtest = xtrain[r_inds[i_train:]]
         ytest = ytrain[r_inds[i_train:]]
+        ctest = ctrain[r_inds[i_train:]]
         xtrain = xtrain[r_inds[:i_train]]
         ytrain = ytrain[r_inds[:i_train]]
+        ctrain = ctrain[r_inds[:i_train]]
         pass
     
     # Normalizing the data
-    mean_train = np.mean(xtrain, keepdims = True) # Computing the mean
-    std_train = np.std(xtrain, keepdims = True) # and the standard deviation of the training set
-    normalize_fn(xtrain, mean_train, std_train) # Normalize train
-    normalize_fn(xtest, mean_train, std_train) # and test data
+    mean_xtrain = np.mean(xtrain, keepdims = True) # Computing the mean
+    std_xtrain = np.std(xtrain, keepdims = True) # and the standard deviation of xtrain
+    mean_ctrain = np.mean(ctrain, keepdims= True) # Compute the mean 
+    std_ctrain = np.std(ctrain, keepdims = True) # and the std of ctrain
+    normalize_fn(xtrain, mean_xtrain, std_xtrain) # Normalize xtrain
+    normalize_fn(xtest, mean_xtrain, std_xtrain) # and xtest
+    normalize_fn(ctrain, mean_ctrain, std_ctrain) # Normalize ctrain
+    normalize_fn(ctest, mean_ctrain, std_ctrain) # and ctest
     
     # Adding bias
     append_bias_term(xtrain)
     append_bias_term(xtest)
+    append_bias_term(ctrain)
+    append_bias_term(ctest)
 
     ## 3. Initialize the method you want to use.
 
@@ -82,7 +90,7 @@ def main(args):
         method_obj = LinearRegression(lmda=args.lmda, task_kind=args.task_kind)
 
     elif args.method == "logistic_regression":
-        method_obj = LogisticRegression(lr=args.lr, max_iter=args.max_iters, task_kind=args.task_kind)
+        method_obj = LogisticRegression(lr=args.lr, max_iters=args.max_iters, task_kind=args.task_kind)
 
     ## 4. Train and evaluate the method
 
@@ -140,10 +148,10 @@ if __name__ == '__main__':
     # Feel free to add more arguments here if you need!
 
     # General arguments
-    parser.add_argument('--train_part', default=0.8, help="part of the given data used for training (rest is used for test)")
+    parser.add_argument('--train_part', default=0.8, type=float, help="part of the given data used for training (rest is used for test)")
 
     # MS2 arguments
-    parser.add_argument('--nn_type', default="cnn", help="which network to use, can be 'Transformer' or 'cnn'")
+    parser.add_argument('--nn_type', default="cnn", type=str, help="which network to use, can be 'Transformer' or 'cnn'")
     parser.add_argument('--nn_batch_size', type=int, default=64, help="batch size for NN training")
 
     # kNN arguments
