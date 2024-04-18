@@ -45,7 +45,7 @@ def main(args):
     # Make a validation set (it can overwrite xtest, ytest)
     if not args.test:
         num_samples = xtrain.shape[0]
-        train_part = 0.8 # Nombre arbitraire, il faudrait pouvoir le donner en argument
+        train_part = args.train_part
         r_inds = np.random.permutation(num_samples) # We shuffle the indices to shuffle the data
         i_train = int(num_samples * train_part) # Final index of the total data that is used for training
         
@@ -73,16 +73,16 @@ def main(args):
 
     # Follow the "DummyClassifier" example for your methods
     if args.method == "dummy_classifier":
-        method_obj = DummyClassifier(arg1=1, arg2=2)
+        method_obj = DummyClassifier(arg1=1, arg2=2, task_kind=args.task_kind)
 
     elif args.method == "knn":
         method_obj = KNN(k=args.K, task_kind=args.task_kind)
     
     elif args.method == "linear_regression":
-        method_obj = LinearRegression(lmda=args.lmda)
+        method_obj = LinearRegression(lmda=args.lmda, task_kind=args.task_kind)
 
     elif args.method == "logistic_regression":
-        method_obj = LogisticRegression(lr=args.lr, max_iter=args.max_iters)
+        method_obj = LogisticRegression(lr=args.lr, max_iter=args.max_iters, task_kind=args.task_kind)
 
     ## 4. Train and evaluate the method
 
@@ -127,6 +127,7 @@ if __name__ == '__main__':
     # If an argument is not given, it will take its default value as defined below.
     parser = argparse.ArgumentParser()
     parser.add_argument('--task', default="center_locating", type=str, help="center_locating / breed_identifying")
+    parser.add_argument('--task_kind', default="classification", help="classification / regression")
     parser.add_argument('--method', default="dummy_classifier", type=str, help="dummy_classifier / knn / linear_regression/ logistic_regression / nn (MS2)")
     parser.add_argument('--data_path', default="data", type=str, help="path to your dataset")
     parser.add_argument('--data_type', default="features", type=str, help="features/original(MS2)")
@@ -138,13 +139,15 @@ if __name__ == '__main__':
 
     # Feel free to add more arguments here if you need!
 
+    # General arguments
+    parser.add_argument('--train_part', default=0.8, help="part of the given data used for training (rest is used for test)")
+
     # MS2 arguments
     parser.add_argument('--nn_type', default="cnn", help="which network to use, can be 'Transformer' or 'cnn'")
     parser.add_argument('--nn_batch_size', type=int, default=64, help="batch size for NN training")
 
     # kNN arguments
     parser.add_argument('--K', type=int, default=1, help="number of neighboring datapoints used for knn")
-    parser.add_argument('--task_kind', default="classification", help="classification / regression")
 
     # "args" will keep in memory the arguments and their values,
     # which can be accessed as "args.data", for example.
