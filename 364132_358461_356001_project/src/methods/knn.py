@@ -1,7 +1,6 @@
 import numpy as np
 
-
-
+from ..utils import label_to_onehot
 
 class KNN(object):
     """
@@ -41,10 +40,13 @@ class KNN(object):
         Inputs:
             neighbor_labels: shape (N,)
         Outputs:
-            most frequent label
+            if "classification" : most frequent label
+            else ("regression") : mean of neigbor labels
         """
-
-        return np.argmax(np.bincount(neighbor_labels))
+        if self.task_kind == "classification":
+            return np.argmax(np.bincount(neighbor_labels))
+        else:
+            return np.mean(neighbor_labels)
     
     def __find_k_nearest_neighbors(self, distances):
         """ Find the indices of the k smallest distances from a list of distances.
@@ -108,8 +110,11 @@ class KNN(object):
             Arguments:
                 test_data (np.array): test data of shape (N,D)
             Returns:
-                test_labels (np.array): labels of shape (N,)
+                if task_kind == "classification" : test_labels (np.array): labels of shape (N,)
+                else (task_kind == "regression") : test_labels (np.array): labels of shape (N, C)
+                
         """
-
-        return np.apply_along_axis(self.__kNN_one_example, 1, test_data,
-                                   self.training_data, self.training_labels)
+        if self.task_kind == "classification":
+            return np.apply_along_axis(self.__kNN_one_example, 1, test_data, self.training_data, self.training_labels)
+        else:
+            return label_to_onehot(np.apply_along_axis(self.__kNN_one_example, 1, test_data, self.training_data, self.training_labels))
