@@ -137,7 +137,7 @@ if __name__ == '__main__':
     parser.add_argument('--task', default="center_locating", type=str, help="center_locating / breed_identifying")
     parser.add_argument('--task_kind', default="classification", help="classification / regression")
     parser.add_argument('--method', default="dummy_classifier", type=str, help="dummy_classifier / knn / linear_regression/ logistic_regression / nn (MS2)")
-    parser.add_argument('--data_path', default="data", type=str, help="path to your dataset")
+    parser.add_argument('--data_path', default="..", type=str, help="path to your dataset")
     parser.add_argument('--data_type', default="features", type=str, help="features/original(MS2)")
     parser.add_argument('--lmda', type=float, default=10, help="lambda of linear/ridge regression")
     parser.add_argument('--lr', type=float, default=1e-5, help="learning rate for methods with learning rate")
