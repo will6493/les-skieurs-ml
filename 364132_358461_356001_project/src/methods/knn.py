@@ -2,6 +2,7 @@ import numpy as np
 
 from ..utils import label_to_onehot
 
+
 class KNN(object):
     """
         kNN classifier object.
@@ -17,15 +18,16 @@ class KNN(object):
         self.training_labels = None
 
     def __euclidean_dist(self, example, training_examples):
-        """Compute the Euclidean distance between a single example
-        vector and all training_examples.
-
-        Inputs:
-            example: shape (D,)
-            training_examples: shape (NxD)
-        Outputs:
-            euclidean distances: shape (N,)
         """
+          Compute the Euclidean distances from a single sample to all samples in a dataset.
+
+          Parameters:
+              example (np.array): A single sample vector.
+              training_examples (np.array): An array of sample vectors.
+
+          Returns:
+              np.array: Distances from the sample to each training example.
+          """
         return np.sqrt(np.sum((training_examples - example) ** 2, axis=1))
 
     def __predict_label(self, neighbor_labels, distances):
@@ -46,10 +48,7 @@ class KNN(object):
             epsilon = 1e-3
             # Weights are the inverse of the distances
             weights = 1 / (distances + epsilon)
-
-            # Calculate the weighted average, JE SAIS PAS LEQUEL EST JUSTE
             weighted_average = weights @ neighbor_labels / np.sum(weights)
-            ##weighted_average = np.sum(weights * neighbor_labels) / np.sum(weights)
             return weighted_average
 
     def __find_k_nearest_neighbors(self, distances):
@@ -116,9 +115,9 @@ class KNN(object):
             Returns:
                 if task_kind == "classification" : test_labels (np.array): labels of shape (N,)
                 else (task_kind == "regression") : test_labels (np.array): labels of shape (N, C)
-                
+
         """
         if self.task_kind == "classification":
             return np.apply_along_axis(self.__kNN_one_example, 1, test_data, self.training_data, self.training_labels)
         else:
-            return label_to_onehot(np.apply_along_axis(self.__kNN_one_example, 1, test_data, self.training_data, self.training_labels))
+            return np.apply_along_axis(self.__kNN_one_example, 1, test_data, self.training_data, self.training_labels)
