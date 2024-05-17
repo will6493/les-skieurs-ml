@@ -1,15 +1,12 @@
 import argparse
 
 import numpy as np
+from torchinfo import summary
 
 from src.data import load_data
-from src.methods.dummy_methods import DummyClassifier
-from src.methods.logistic_regression import LogisticRegression
-from src.methods.linear_regression import LinearRegression 
-from src.methods.knn import KNN
-from src.utils import normalize_fn, append_bias_term, accuracy_fn, macrof1_fn, mse_fn
-import os
-np.random.seed(100)
+from src.methods.pca import PCA
+from src.methods.deep_network import MLP, CNN, Trainer, MyViT
+from src.utils import normalize_fn, append_bias_term, accuracy_fn, macrof1_fn, get_n_classes
 
 
 def main(args):
@@ -22,110 +19,64 @@ def main(args):
                           of this file). Their value can be accessed as "args.argument".
     """
     ## 1. First, we load our data and flatten the images into vectors
-
-    ##EXTRACTED FEATURES DATASET
-    if args.data_type == "features":
-        feature_data = np.load(args.data_path + '/features.npz',allow_pickle=True)
-        xtrain, xtest, ytrain, ytest, ctrain, ctest =feature_data['xtrain'],feature_data['xtest'],\
-        feature_data['ytrain'],feature_data['ytest'],feature_data['ctrain'],feature_data['ctest']
-
-    ##ORIGINAL IMAGE DATASET (MS2)
-    elif args.data_type == "original":
-        data_dir = os.path.join(args.data_path,'dog-small-64')
-        xtrain, xtest, ytrain, ytest, ctrain, ctest = load_data(data_dir)
-
-    ##TODO: ctrain and ctest are for regression task. (To be used for Linear Regression and KNN)
-    ##TODO: xtrain, xtest, ytrain, ytest are for classification task. (To be used for Logistic Regression and KNN)
-
-
+    xtrain, xtest, ytrain = load_data(args.data_path)
+    xtrain = xtrain.reshape(xtrain.shape[0], -1)
+    xtest = xtest.reshape(xtest.shape[0], -1)
 
     ## 2. Then we must prepare it. This is were you can create a validation set,
     #  normalize, add bias, etc.
 
-    # Make a validation set (it can overwrite xtest, ytest)
+    # Make a validation set
     if not args.test:
-        num_samples = xtrain.shape[0]
-        train_part = args.train_part
-        r_inds = np.random.permutation(num_samples) # We shuffle the indices to shuffle the data
-        i_train = int(num_samples * train_part) # Final index of the total data that is used for training
-        
-        xtest = xtrain[r_inds[i_train:]]
-        ytest = ytrain[r_inds[i_train:]]
-        ctest = ctrain[r_inds[i_train:]]
-        xtrain = xtrain[r_inds[:i_train]]
-        ytrain = ytrain[r_inds[:i_train]]
-        ctrain = ctrain[r_inds[:i_train]]
-        pass
-    
-    # Normalizing the data
-    mean_xtrain = np.mean(xtrain, keepdims = True) # Computing the mean
-    std_xtrain = np.std(xtrain, keepdims = True) # and the standard deviation of xtrain
-    mean_ctrain = np.mean(ctrain, keepdims= True) # Compute the mean 
-    std_ctrain = np.std(ctrain, keepdims = True) # and the std of ctrain
-    normalize_fn(xtrain, mean_xtrain, std_xtrain) # Normalize xtrain
-    normalize_fn(xtest, mean_xtrain, std_xtrain) # and xtest
-    normalize_fn(ctrain, mean_ctrain, std_ctrain) # Normalize ctrain
-    normalize_fn(ctest, mean_ctrain, std_ctrain) # and ctest
-    
-    # Adding bias
-    append_bias_term(xtrain)
-    append_bias_term(xtest)
-    append_bias_term(ctrain)
-    append_bias_term(ctest)
+    ### WRITE YOUR CODE HERE
+        print("Using PCA")
+
+    ### WRITE YOUR CODE HERE to do any other data processing
+
+
+    # Dimensionality reduction (MS2)
+    if args.use_pca:
+        print("Using PCA")
+        pca_obj = PCA(d=args.pca_d)
+        ### WRITE YOUR CODE HERE: use the PCA object to reduce the dimensionality of the data
+
 
     ## 3. Initialize the method you want to use.
 
-    # Use NN (FOR MS2!)
-    if args.method == "nn":
-        raise NotImplementedError("This will be useful for MS2.")
+    # Neural Networks (MS2)
 
-    # Follow the "DummyClassifier" example for your methods
-    if args.method == "dummy_classifier":
-        method_obj = DummyClassifier(arg1=1, arg2=2, task_kind=args.task_kind)
+    # Prepare the model (and data) for Pytorch
+    # Note: you might need to reshape the data depending on the network you use!
+    n_classes = get_n_classes(ytrain)
+    if args.nn_type == "mlp":
+        model = ... ### WRITE YOUR CODE HERE
 
-    elif args.method == "knn":
-        method_obj = KNN(k=args.K, task_kind=args.task_kind)
-    
-    elif args.method == "linear_regression":
-        method_obj = LinearRegression(lmda=args.lmda, task_kind=args.task_kind)
+    summary(model)
 
-    elif args.method == "logistic_regression":
-        method_obj = LogisticRegression(lr=args.lr, max_iters=args.max_iters, task_kind=args.task_kind)
+    # Trainer object
+    method_obj = Trainer(model, lr=args.lr, epochs=args.max_iters, batch_size=args.nn_batch_size)
+
 
     ## 4. Train and evaluate the method
 
-    if args.task == "center_locating":
-        # Fit parameters on training data
-        preds_train = method_obj.fit(xtrain, ctrain)
+    # Fit (:=train) the method on the training data
+    preds_train = method_obj.fit(xtrain, ytrain)
 
-        # Perform inference for training and test data
-        train_pred = method_obj.predict(xtrain)
-        preds = method_obj.predict(xtest)
+    # Predict on unseen data
+    preds = method_obj.predict(xtest)
 
-        ## Report results: performance on train and valid/test sets
-        train_loss = mse_fn(train_pred, ctrain)
-        loss = mse_fn(preds, ctest)
+    ## Report results: performance on train and valid/test sets
+    acc = accuracy_fn(preds_train, ytrain)
+    macrof1 = macrof1_fn(preds_train, ytrain)
+    print(f"\nTrain set: accuracy = {acc:.3f}% - F1-score = {macrof1:.6f}")
 
-        print(f"\nTrain loss = {train_loss:.3f}% - Test loss = {loss:.3f}")
 
-    elif args.task == "breed_identifying":
+    ## As there are no test dataset labels, check your model accuracy on validation dataset.
+    # You can check your model performance on test set by submitting your test set predictions on the AIcrowd competition.
+    acc = accuracy_fn(preds, xtest)
+    macrof1 = macrof1_fn(preds, xtest)
+    print(f"Validation set:  accuracy = {acc:.3f}% - F1-score = {macrof1:.6f}")
 
-        # Fit (:=train) the method on the training data for classification task
-        preds_train = method_obj.fit(xtrain, ytrain)
-
-        # Predict on unseen data
-        preds = method_obj.predict(xtest)
-
-        ## Report results: performance on train and valid/test sets
-        acc = accuracy_fn(preds_train, ytrain)
-        macrof1 = macrof1_fn(preds_train, ytrain)
-        print(f"\nTrain set: accuracy = {acc:.3f}% - F1-score = {macrof1:.6f}")
-
-        acc = accuracy_fn(preds, ytest)
-        macrof1 = macrof1_fn(preds, ytest)
-        print(f"Test set:  accuracy = {acc:.3f}% - F1-score = {macrof1:.6f}")
-    else:
-        raise Exception("Invalid choice of task! Only support center_locating and breed_identifying!")
 
     ### WRITE YOUR CODE HERE if you want to add other outputs, visualization, etc.
 
@@ -134,28 +85,24 @@ if __name__ == '__main__':
     # Definition of the arguments that can be given through the command line (terminal).
     # If an argument is not given, it will take its default value as defined below.
     parser = argparse.ArgumentParser()
-    parser.add_argument('--task', default="center_locating", type=str, help="center_locating / breed_identifying")
-    parser.add_argument('--task_kind', default="classification", help="classification / regression")
-    parser.add_argument('--method', default="dummy_classifier", type=str, help="dummy_classifier / knn / linear_regression/ logistic_regression / nn (MS2)")
-    parser.add_argument('--data_path', default="..", type=str, help="path to your dataset")
-    parser.add_argument('--data_type', default="features", type=str, help="features/original(MS2)")
-    parser.add_argument('--lmda', type=float, default=10, help="lambda of linear/ridge regression")
-    parser.add_argument('--lr', type=float, default=1e-5, help="learning rate for methods with learning rate")
-    parser.add_argument('--max_iters', type=int, default=100, help="max iters for methods which are iterative")
-    parser.add_argument('--test', action="store_true", help="train on whole training data and evaluate on the test data, otherwise use a validation set")
-
-
     # Feel free to add more arguments here if you need!
 
-    # General arguments
-    parser.add_argument('--train_part', default=0.8, type=float, help="part of the given data used for training (rest is used for test)")
-
     # MS2 arguments
-    parser.add_argument('--nn_type', default="cnn", type=str, help="which network to use, can be 'Transformer' or 'cnn'")
+    parser.add_argument('--data', default="dataset", type=str, help="path to your dataset")
+    parser.add_argument('--nn_type', default="mlp",
+                        help="which network architecture to use, it can be 'mlp' | 'transformer' | 'cnn'")
     parser.add_argument('--nn_batch_size', type=int, default=64, help="batch size for NN training")
+    parser.add_argument('--device', type=str, default="cpu",
+                        help="Device to use for the training, it can be 'cpu' | 'cuda' | 'mps'")
+    parser.add_argument('--use_pca', action="store_true", help="use PCA for feature reduction")
+    parser.add_argument('--pca_d', type=int, default=100, help="the number of principal components")
 
-    # kNN arguments
-    parser.add_argument('--K', type=int, default=1, help="number of neighboring datapoints used for knn")
+
+    parser.add_argument('--lr', type=float, default=1e-5, help="learning rate for methods with learning rate")
+    parser.add_argument('--max_iters', type=int, default=100, help="max iters for methods which are iterative")
+    parser.add_argument('--test', action="store_true",
+                        help="train on whole training data and evaluate on the test data, otherwise use a validation set")
+
 
     # "args" will keep in memory the arguments and their values,
     # which can be accessed as "args.data", for example.
