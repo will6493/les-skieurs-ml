@@ -28,8 +28,26 @@ def main(args):
 
     # Make a validation set
     if not args.test:
-    ### WRITE YOUR CODE HERE
-        print("Using PCA")
+        num_samples = xtrain.shape[0]
+        train_part = args.train_part
+        r_inds = np.random.permutation(num_samples) # We shuffle the indices to shuffle the data
+        i_train = int(num_samples * train_part) # Final index of the total data that is used for training
+        
+        xtest = xtrain[r_inds[i_train:]]
+        # ytest = ytrain[r_inds[i_train:]]
+        xtrain = xtrain[r_inds[:i_train]]
+        ytrain = ytrain[r_inds[:i_train]]
+        pass
+    
+    # Normalizing the data
+    mean_xtrain = np.mean(xtrain, keepdims = True) # Computing the mean
+    std_xtrain = np.std(xtrain, keepdims = True) # and the standard deviation of xtrain
+    normalize_fn(xtrain, mean_xtrain, std_xtrain) # Normalize xtrain
+    normalize_fn(xtest, mean_xtrain, std_xtrain) # and xtest
+
+    # Adding bias
+    append_bias_term(xtrain)
+    append_bias_term(xtest)
 
     ### WRITE YOUR CODE HERE to do any other data processing
 
