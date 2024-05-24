@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import TensorDataset, DataLoader
 
+
 ## MS2
 
 
@@ -13,7 +14,7 @@ class MLP(nn.Module):
     It should not use any convolutional layers.
     """
 
-    def __init__(self, input_size, n_classes):
+    def __init__(self, input_size, n_classes, activation_function="relu", hidden_layer_sizes: list = None):
         """
         Initialize the network.
         
@@ -23,13 +24,37 @@ class MLP(nn.Module):
         Arguments:
             input_size (int): size of the input
             n_classes (int): number of classes to predict
+            activation_function (str): activation function to use in the hidden layers (relu, sigmoid, tanh)
+            hidden_layer_sizes (list): list of integers, the sizes of the hidden layers
         """
-        super().__init__()
-        ##
-        ###
-        #### WRITE YOUR CODE HERE!
-        ###
-        ##
+        super(MLP, self).__init__()
+
+        # DEFAULT HIDDEN LAYER SIZES = [64, 64, 64]
+        if hidden_layer_sizes is None:
+            hidden_layer_sizes = [64] * 3  # Default to 64 nodes per layer (3 layer)
+
+        # Define the layers
+        self.layers = nn.ModuleList()
+        # Input layer
+        self.layers.append(nn.Linear(input_size, hidden_layer_sizes[0]))
+
+        # Hidden layers
+        for i in range(1, len(hidden_layer_sizes) - 1):
+            self.layers.append(nn.Linear(hidden_layer_sizes[i - 1], hidden_layer_sizes[i]))
+
+        # Output layer
+        self.layers.append(nn.Linear(hidden_layer_sizes[-1], n_classes))
+
+        ## Setting the activation function
+        activations = {
+            'relu': nn.ReLU(),
+            'sigmoid': nn.Sigmoid(),
+            'tanh': nn.Tanh()
+        }
+        if activation_function not in activations:
+            raise ValueError(
+                f"Activation function {activation_function} not supported. Choose from {list(activations.keys())}")
+        self.activation = activations[activation_function]
 
     def forward(self, x):
         """
@@ -41,12 +66,11 @@ class MLP(nn.Module):
             preds (tensor): logits of predictions of shape (N, C)
                 Reminder: logits are value pre-softmax.
         """
-        ##
-        ###
-        #### WRITE YOUR CODE HERE!
-        ###
-        ##
-        return preds
+
+        for layer in self.layers[:-1]:
+            x = self.activation(layer(x))
+
+        return self.layers[-1](x)
 
 
 class CNN(nn.Module):
@@ -67,12 +91,15 @@ class CNN(nn.Module):
             input_channels (int): number of channels in the input
             n_classes (int): number of classes to predict
         """
-        super().__init__()
-        ##
-        ###
-        #### WRITE YOUR CODE HERE!
-        ###
-        ##
+        super(CNN, self).__init__()
+
+        #Edit here to modify the model
+        self.conv2d1 = nn.Conv2d(input_channels, 6, 3, padding=1)
+        self.conv2d2 = nn.Conv2d(6, 16, 3, padding=1)
+        self.fc1 = nn.Linear(7 * 7 * 16, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, n_classes)
+
 
     def forward(self, x):
         """
@@ -84,12 +111,14 @@ class CNN(nn.Module):
             preds (tensor): logits of predictions of shape (N, C)
                 Reminder: logits are value pre-softmax.
         """
-        ##
-        ###
-        #### WRITE YOUR CODE HERE!
-        ###
-        ##
-        return preds
+
+        x = F.max_pool2d(F.relu(self.conv2d1(x)), 2) #kernel size = 2 --> size of the feature map is reduced by 2
+        x = F.max_pool2d(F.relu(self.conv2d2(x)), 2)
+        x = x.reshape((x.shape[0], -1))  # or we could use `x.flatten(-3)`
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        return self.fc3(x)
+
 
 
 class MyViT(nn.Module):
@@ -206,7 +235,7 @@ class Trainer(object):
         ###
         ##
         return pred_labels
-    
+
     def fit(self, training_data, training_labels):
         """
         Trains the model, returns predicted labels for training data.
@@ -221,10 +250,10 @@ class Trainer(object):
         """
 
         # First, prepare data for pytorch
-        train_dataset = TensorDataset(torch.from_numpy(training_data).float(), 
+        train_dataset = TensorDataset(torch.from_numpy(training_data).float(),
                                       torch.from_numpy(training_labels))
         train_dataloader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
-        
+
         self.train_all(train_dataloader)
 
         return self.predict(training_data)
