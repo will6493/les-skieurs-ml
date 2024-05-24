@@ -1,12 +1,13 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 from torch.utils.data import TensorDataset, DataLoader
 
 
 ## MS2
 
-
+#=================== MLP ==============================
 class MLP(nn.Module):
     """
     An MLP network which does classification.
@@ -73,6 +74,7 @@ class MLP(nn.Module):
         return self.layers[-1](x)
 
 
+#============= CNN ==============================
 class CNN(nn.Module):
     """
     A CNN which does classification.
@@ -93,13 +95,12 @@ class CNN(nn.Module):
         """
         super(CNN, self).__init__()
 
-        #Edit here to modify the model
+        # Edit here to modify the model
         self.conv2d1 = nn.Conv2d(input_channels, 6, 3, padding=1)
         self.conv2d2 = nn.Conv2d(6, 16, 3, padding=1)
         self.fc1 = nn.Linear(7 * 7 * 16, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, n_classes)
-
 
     def forward(self, x):
         """
@@ -112,7 +113,7 @@ class CNN(nn.Module):
                 Reminder: logits are value pre-softmax.
         """
 
-        x = F.max_pool2d(F.relu(self.conv2d1(x)), 2) #kernel size = 2 --> size of the feature map is reduced by 2
+        x = F.max_pool2d(F.relu(self.conv2d1(x)), 2)  # kernel size = 2 --> size of the feature map is reduced by 2
         x = F.max_pool2d(F.relu(self.conv2d2(x)), 2)
         x = x.reshape((x.shape[0], -1))  # or we could use `x.flatten(-3)`
         x = F.relu(self.fc1(x))
@@ -120,7 +121,7 @@ class CNN(nn.Module):
         return self.fc3(x)
 
 
-
+# ============= MyViT ==============================
 class MyViT(nn.Module):
     """
     A Transformer-based neural network
@@ -131,31 +132,152 @@ class MyViT(nn.Module):
         Initialize the network.
         
         """
-        super().__init__()
-        ##
-        ###
-        #### WRITE YOUR CODE HERE!
-        ###
-        ##
+        super(MyViT, self).__init__()
+
+        self.chw = chw  # (C = channels (rvb), H = height , W = width)
+        self.n_patches = n_patches
+        self.n_blocks = n_blocks  # Number of transformer blocks
+        self.n_heads = n_heads  # Number of heads in the multi-head attention
+        self.hidden_d = hidden_d  # Hidden dimension (size of Q, K, V)
+
+        # Input and patches sizes
+        assert chw[1] % n_patches == 0  # Input shape must be divisible by number of patches
+        assert chw[2] % n_patches == 0
+        self.patch_size = (chw[1] / n_patches, chw[2] / n_patches)
+
+        # Linear mapper
+        # dimensionality of each patch after flattening it
+        self.input_d = int(chw[0] * self.patch_size[0] * self.patch_size[1])
+        # linear layer that maps each flattened patch to a vector of dimension self.hidden_d
+        self.linear_mapper = nn.Linear(self.input_d, self.hidden_d)
+
+        # Learnable classification token
+        self.class_token = nn.Parameter(torch.rand(1, self.hidden_d))
+
+        # Positional embedding
+        self.positional_embeddings = self.__get_positional_embeddings()
+
+        # Transformer blocks
+        self.blocks = nn.ModuleList([MyViTBlock(hidden_d, n_heads) for _ in range(n_blocks)])
+
+        # Classification MLP
+        self.mlp = nn.Sequential(
+            nn.Linear(self.hidden_d, out_d),
+            nn.Softmax(dim=-1)
+        )
+
+    def __get_positional_embeddings(self):
+        sequence_length = self.n_patches ** 2 + 1
+        d = self.hidden_d
+        result = torch.ones(sequence_length, d)
+        for i in range(sequence_length):
+            for j in range(d):
+                result[i, j] = np.sin(i / (10000 ** (2 * j / d))) if j % 2 == 0 else np.cos(i / (10000 ** (2 * j / d)))
+        return result
+
+    def __patchify(self, images, n_patches):
+        n, c, h, w = images.shape
+
+        assert h == w  # We assume square image.
+
+        patches = torch.zeros(n, n_patches ** 2, h * w * c // n_patches ** 2)
+        patch_size = h // n_patches  ### WRITE YOUR CODE HERE
+
+        for idx, image in enumerate(images):
+            for i in range(n_patches):
+                for j in range(n_patches):
+                    # Extract the patch of the image.
+                    patch = image[:, i * patch_size: (i + 1) * patch_size,
+                            j * patch_size: (j + 1) * patch_size]  ### WRITE YOUR CODE HERE
+
+                    # Flatten the patch and store it.
+                    patches[idx, i * n_patches + j] = patch.flatten()  ### WRITE YOUR CODE HERE
+
+        return patches
+
+
+def forward(self, x):
+    """
+    Predict the class of a batch of samples with the model.
+
+    Arguments:
+        x (tensor): input batch of shape (N, Ch, H, W)
+    Returns:
+        preds (tensor): logits of predictions of shape (N, C)
+            Reminder: logits are value pre-softmax.
+    """
+    ##
+    ###
+    #### WRITE YOUR CODE HERE!
+    ###
+    ##
+    return preds
+
+
+#------------ Helper class for the ViT model -----------------
+class MyMSA(nn.Module):
+    def __init__(self, d, n_heads=2):
+        super(MyMSA, self).__init__()
+        self.d = d
+        self.n_heads = n_heads
+
+        assert d % n_heads == 0, f"Can't divide dimension {d} into {n_heads} heads"
+        d_head = int(d / n_heads)
+        self.d_head = d_head
+
+        #Lists of linear layers for the query, key, and value mappings for each head.
+        self.q_mappings = nn.ModuleList([nn.Linear(d_head, d_head) for _ in range(self.n_heads)])
+        self.k_mappings = nn.ModuleList([nn.Linear(d_head, d_head) for _ in range(self.n_heads)])
+        self.v_mappings = nn.ModuleList([nn.Linear(d_head, d_head) for _ in range(self.n_heads)])
+
+        #softmax layer used to calculate the attention scores --> give a weight to each value (distribution)
+        self.softmax = nn.Softmax(dim=-1)
+
+    def forward(self, sequences):
+        result = []
+        for sequence in sequences:
+            seq_result = []
+            for head in range(self.n_heads):
+                # Select the mapping associated to the given head.
+                q_mapping = self.q_mappings[head]
+                k_mapping = self.k_mappings[head]
+                v_mapping = self.v_mappings[head]
+
+                seq = sequence[:, head * self.d_head: (head + 1) * self.d_head]
+
+                # Map seq to q, k, v.
+                q, k, v = q_mapping(seq), k_mapping(seq), v_mapping(seq)  ### WRITE YOUR CODE HERE
+
+                attention = self.softmax(q @ k.T / (self.d_head ** 0.5))  ### WRITE YOUR CODE HERE
+                seq_result.append(attention @ v)
+            result.append(torch.hstack(seq_result))
+        return torch.cat([torch.unsqueeze(r, dim=0) for r in result])
+
+
+class MyViTBlock(nn.Module):
+    def __init__(self, hidden_d, n_heads, mlp_ratio=4):
+        super(MyViTBlock, self).__init__()
+        self.hidden_d = hidden_d
+        self.n_heads = n_heads
+
+        self.norm1 = nn.LayerNorm(hidden_d)  ### WRITE YOUR CODE HERE
+        self.mhsa = MyMSA(hidden_d, n_heads)  ### WRITE YOUR CODE HERE
+        self.norm2 = nn.LayerNorm(hidden_d)  ### WRITE YOUR CODE HERE
+        self.mlp = nn.Sequential(  ### WRITE YOUR CODE HERE
+            nn.Linear(hidden_d, mlp_ratio * hidden_d),
+            nn.GELU(),
+            nn.Linear(mlp_ratio * hidden_d, hidden_d)
+        )
 
     def forward(self, x):
-        """
-        Predict the class of a batch of samples with the model.
-
-        Arguments:
-            x (tensor): input batch of shape (N, Ch, H, W)
-        Returns:
-            preds (tensor): logits of predictions of shape (N, C)
-                Reminder: logits are value pre-softmax.
-        """
-        ##
-        ###
-        #### WRITE YOUR CODE HERE!
-        ###
-        ##
-        return preds
+        # MHSA + residual connection.
+        out = x + self.mhsa(self.norm1(x))
+        # Feedforward + residual connection
+        out = out + self.mlp(self.norm2(out))
+        return out
 
 
+#=================== Trainer ==============================
 class Trainer(object):
     """
     Trainer class for the deep networks.
