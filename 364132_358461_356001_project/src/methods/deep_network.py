@@ -1,13 +1,15 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.optim import Adam
+from torch.nn import CrossEntropyLoss
 import numpy as np
 from torch.utils.data import TensorDataset, DataLoader
 
 
-## MS2
+# MS2
 
-#=================== MLP ==============================
+# =================== MLP ==============================
 class MLP(nn.Module):
     """
     An MLP network which does classification.
@@ -18,10 +20,10 @@ class MLP(nn.Module):
     def __init__(self, input_size, n_classes, activation_function="relu", hidden_layer_sizes: list = None):
         """
         Initialize the network.
-        
+
         You can add arguments if you want, but WITH a default value, e.g.:
             __init__(self, input_size, n_classes, my_arg=32)
-        
+
         Arguments:
             input_size (int): size of the input
             n_classes (int): number of classes to predict
@@ -46,7 +48,7 @@ class MLP(nn.Module):
         # Output layer
         self.layers.append(nn.Linear(hidden_layer_sizes[-1], n_classes))
 
-        ## Setting the activation function
+        # Setting the activation function
         activations = {
             'relu': nn.ReLU(),
             'sigmoid': nn.Sigmoid(),
@@ -74,7 +76,7 @@ class MLP(nn.Module):
         return self.layers[-1](x)
 
 
-#============= CNN ==============================
+# ============= CNN ==============================
 class CNN(nn.Module):
     """
     A CNN which does classification.
@@ -85,10 +87,10 @@ class CNN(nn.Module):
     def __init__(self, input_channels, n_classes):
         """
         Initialize the network.
-        
+
         You can add arguments if you want, but WITH a default value, e.g.:
             __init__(self, input_channels, n_classes, my_arg=32)
-        
+
         Arguments:
             input_channels (int): number of channels in the input
             n_classes (int): number of classes to predict
@@ -130,7 +132,7 @@ class MyViT(nn.Module):
     def __init__(self, chw, n_patches, n_blocks, hidden_d, n_heads, out_d):
         """
         Initialize the network.
-        
+
         """
         super(MyViT, self).__init__()
 
@@ -175,46 +177,62 @@ class MyViT(nn.Module):
                 result[i, j] = np.sin(i / (10000 ** (2 * j / d))) if j % 2 == 0 else np.cos(i / (10000 ** (2 * j / d)))
         return result
 
-    def __patchify(self, images, n_patches):
+    def __patchify(self, images):
         n, c, h, w = images.shape
 
         assert h == w  # We assume square image.
 
-        patches = torch.zeros(n, n_patches ** 2, h * w * c // n_patches ** 2)
-        patch_size = h // n_patches  ### WRITE YOUR CODE HERE
+        patches = torch.zeros(n, self.n_patches ** 2, h * w * c // self.n_patches ** 2)
+        patch_size = h // self.n_patches
 
         for idx, image in enumerate(images):
-            for i in range(n_patches):
-                for j in range(n_patches):
+            for i in range(self.n_patches):
+                for j in range(self.n_patches):
                     # Extract the patch of the image.
-                    patch = image[:, i * patch_size: (i + 1) * patch_size,
-                            j * patch_size: (j + 1) * patch_size]  ### WRITE YOUR CODE HERE
+                    patch = image[:, i * patch_size: (i + 1) * patch_size, j * patch_size: (j + 1) * patch_size]
 
                     # Flatten the patch and store it.
-                    patches[idx, i * n_patches + j] = patch.flatten()  ### WRITE YOUR CODE HERE
+                    patches[idx, i * self.n_patches + j] = patch.flatten()
 
         return patches
 
+    def forward(self, x):
+        """
+        Predict the class of a batch of samples with the model.
 
-def forward(self, x):
-    """
-    Predict the class of a batch of samples with the model.
+        Arguments:
+            x (tensor): input batch of shape (N, Ch, H, W)
+        Returns:
+            preds (tensor): logits of predictions of shape (N, C)
+                Reminder: logits are value pre-softmax.
+        """
+        n, Ch, H, W = x.shape
 
-    Arguments:
-        x (tensor): input batch of shape (N, Ch, H, W)
-    Returns:
-        preds (tensor): logits of predictions of shape (N, C)
-            Reminder: logits are value pre-softmax.
-    """
-    ##
-    ###
-    #### WRITE YOUR CODE HERE!
-    ###
-    ##
-    return preds
+        # Divide images into patches.
+        patches = self.__patchify(x)
+
+        # Map the vector corresponding to each patch to the hidden size dimension.
+        tokens = self.linear_mapper(patches)
+
+        # Add classification token to the tokens.
+        tokens = torch.cat((self.class_token.expand(n, 1, -1), tokens), dim=1)
+
+        # Add positional embedding.
+        out = tokens + self.positional_embeddings.repeat(n, 1, 1)
+
+        # Transformer Blocks
+        for block in self.blocks:
+            out = block(out)
+
+        # Get the classification token only.
+        out = out[:, 0]
+
+        # Map to the output distribution.
+        out = self.mlp(out)
+        return out
 
 
-#------------ Helper class for the ViT model -----------------
+# ------------ Helper class for the ViT model -----------------
 class MyMSA(nn.Module):
     def __init__(self, d, n_heads=2):
         super(MyMSA, self).__init__()
@@ -225,12 +243,12 @@ class MyMSA(nn.Module):
         d_head = int(d / n_heads)
         self.d_head = d_head
 
-        #Lists of linear layers for the query, key, and value mappings for each head.
+        # Lists of linear layers for the query, key, and value mappings for each head.
         self.q_mappings = nn.ModuleList([nn.Linear(d_head, d_head) for _ in range(self.n_heads)])
         self.k_mappings = nn.ModuleList([nn.Linear(d_head, d_head) for _ in range(self.n_heads)])
         self.v_mappings = nn.ModuleList([nn.Linear(d_head, d_head) for _ in range(self.n_heads)])
 
-        #softmax layer used to calculate the attention scores --> give a weight to each value (distribution)
+        # softmax layer used to calculate the attention scores --> give a weight to each value (distribution)
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, sequences):
@@ -246,9 +264,8 @@ class MyMSA(nn.Module):
                 seq = sequence[:, head * self.d_head: (head + 1) * self.d_head]
 
                 # Map seq to q, k, v.
-                q, k, v = q_mapping(seq), k_mapping(seq), v_mapping(seq)  ### WRITE YOUR CODE HERE
-
-                attention = self.softmax(q @ k.T / (self.d_head ** 0.5))  ### WRITE YOUR CODE HERE
+                q, k, v = q_mapping(seq), k_mapping(seq), v_mapping(seq)
+                attention = self.softmax(q @ k.T / (self.d_head ** 0.5))
                 seq_result.append(attention @ v)
             result.append(torch.hstack(seq_result))
         return torch.cat([torch.unsqueeze(r, dim=0) for r in result])
@@ -260,10 +277,10 @@ class MyViTBlock(nn.Module):
         self.hidden_d = hidden_d
         self.n_heads = n_heads
 
-        self.norm1 = nn.LayerNorm(hidden_d)  ### WRITE YOUR CODE HERE
-        self.mhsa = MyMSA(hidden_d, n_heads)  ### WRITE YOUR CODE HERE
-        self.norm2 = nn.LayerNorm(hidden_d)  ### WRITE YOUR CODE HERE
-        self.mlp = nn.Sequential(  ### WRITE YOUR CODE HERE
+        self.norm1 = nn.LayerNorm(hidden_d)
+        self.mhsa = MyMSA(hidden_d, n_heads)
+        self.norm2 = nn.LayerNorm(hidden_d)
+        self.mlp = nn.Sequential(
             nn.Linear(hidden_d, mlp_ratio * hidden_d),
             nn.GELU(),
             nn.Linear(mlp_ratio * hidden_d, hidden_d)
@@ -277,7 +294,13 @@ class MyViTBlock(nn.Module):
         return out
 
 
-#=================== Trainer ==============================
+# =================== Trainer ==============================
+def accuracy(x, y):
+    x = x.detach().cpu().numpy()
+    y = y.detach().cpu().numpy()
+    return np.mean(np.argmax(x, axis=1) == y)
+
+
 class Trainer(object):
     """
     Trainer class for the deep networks.
@@ -301,12 +324,22 @@ class Trainer(object):
         self.batch_size = batch_size
 
         self.criterion = nn.CrossEntropyLoss()
-        self.optimizer = ...  ### WRITE YOUR CODE HERE
+        self.optimizer = Adam(model.parameters(), lr=lr)  # compute adaptive learning rates for each parameter
+        """
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda")  # if cuda is available, use it (Nvidia GPU)
+        elif torch.backends.mps.is_available():
+            self.device = torch.device("mps")  # if mps is available, use it (mac)
+        else:
+            self.device = torch.device("cpu")
+        print(f"Using device: {self.device}")
+
+        self.model.to(self.device)"""
 
     def train_all(self, dataloader):
         """
-        Fully train the model over the epochs. 
-        
+        Fully train the model over the epochs.
+
         In each epoch, it calls the functions "train_one_epoch". If you want to
         add something else at each epoch, you can do it here.
 
@@ -314,9 +347,8 @@ class Trainer(object):
             dataloader (DataLoader): dataloader for training data
         """
         for ep in range(self.epochs):
-            self.train_one_epoch(dataloader)
-
-            ### WRITE YOUR CODE HERE if you want to do add something else at each epoch
+            self.train_one_epoch(dataloader, ep)
+            # WRITE YOUR CODE HERE if you want to do add something else at each epoch
 
     def train_one_epoch(self, dataloader, ep):
         """
@@ -327,12 +359,35 @@ class Trainer(object):
 
         Arguments:
             dataloader (DataLoader): dataloader for training data
+            ep (int): current epoch number
         """
-        ##
-        ###
-        #### WRITE YOUR CODE HERE!
-        ###
-        ##
+        self.model.train()  # Set the model to training mode
+        train_loss = 0.0
+        for it, batch in enumerate(dataloader):
+            # Load a batch, break it down in images and targets.
+            x, y = batch  # x represents the input data (images), and y represents the target labels
+            # TODO x, y = x.to(self.device), y.to(self.device)
+
+            # Run forward pass.
+            logits = self.model(x)
+
+            # Compute loss (using 'criterion').
+            loss = self.criterion(logits, y)
+
+            # Run backward pass.
+            loss.backward()  # gradients of the loss
+
+            train_loss += loss.detach().cpu().item() / len(dataloader)
+
+            # Update the weights using 'optimizer'.
+            self.optimizer.step()
+
+            # Zero-out the accumulated gradients.
+            self.optimizer.zero_grad()  # resets the gradients for the next iteration
+
+            print('\rEp {}/{}, it {}/{}: loss train: {:.2f}, accuracy train: {:.2f}'.
+                  format(ep + 1, self.epochs, it + 1, len(dataloader), loss,
+                         accuracy(logits, y)), end='')
 
     def predict_torch(self, dataloader):
         """
@@ -340,7 +395,7 @@ class Trainer(object):
 
         Hints:
             1. Don't forget to set your model to eval mode, i.e., self.model.eval()!
-            2. You can use torch.no_grad() to turn off gradient computation, 
+            2. You can use torch.no_grad() to turn off gradient computation,
             which can save memory and speed up computation. Simply write:
                 with torch.no_grad():
                     # Write your code here.
@@ -351,11 +406,27 @@ class Trainer(object):
             pred_labels (torch.tensor): predicted labels of shape (N,),
                 with N the number of data points in the validation/test data.
         """
-        ##
-        ###
-        #### WRITE YOUR CODE HERE!
-        ###
-        ##
+        self.model.eval()  # Set the model to evaluation mode
+
+        pred_labels = []
+
+        with torch.no_grad():  # Disable gradient computation
+            for batch in dataloader:
+                x = batch[0]  # Since test_dataset contains only inputs, we use batch[0]
+                # TODO x = x.to(self.device)  # Move input data to the same device
+
+                # Run forward pass
+                logits = self.model(x)
+
+                # Get predicted labels
+                _, preds = torch.max(logits, dim=1)
+
+                # Collect predicted labels
+                pred_labels.append(preds.cpu())
+
+        # Concatenate all batches to form a single tensor
+        pred_labels = torch.cat(pred_labels)
+
         return pred_labels
 
     def fit(self, training_data, training_labels):
@@ -385,7 +456,7 @@ class Trainer(object):
         Runs prediction on the test data.
 
         This serves as an interface between numpy and pytorch.
-        
+
         Arguments:
             test_data (array): test data of shape (N,D)
         Returns:
