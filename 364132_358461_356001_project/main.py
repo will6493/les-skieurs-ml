@@ -1,5 +1,5 @@
 import argparse
-
+import time
 import numpy as np
 from torchinfo import summary
 
@@ -54,22 +54,26 @@ def main(args):
     n_classes = get_n_classes(ytrain)
 
     if args.nn_type == "mlp":
-        model = MLP(args.nn_batch_size, n_classes, args.act_func, args.h_lay_sizes)
+        hidden_layer_sizes = [int(size) for size in args.h_lay_sizes.split(',')]
+        model = MLP(args.nn_batch_size, n_classes, args.act_func, hidden_layer_sizes)
     elif args.nn_type == "cnn":
-        model = CNN(args.nn_batch_size, n_classes)
+        model = CNN(1, n_classes)
     elif args.nn_type == "transformer":
         model = MyViT(args.chw, args.n_patches, args.n_blocks, args.hidden_d, args.n_heads, args.out_d)
     else:
         print(args.nn_type + " is not a valid network architecture (try 'mlp', 'cnn' or 'transformer')")
+
     summary(model)
 
     # Trainer object
     method_obj = Trainer(model, lr=args.lr, epochs=args.max_iters, batch_size=args.nn_batch_size)
 
     ## 4. Train and evaluate the method
-
+    start = time.time()
     # Fit (:=train) the method on the training data
     preds_train = method_obj.fit(xtrain, ytrain)
+    end = time.time()
+    print(f"\nTraining time: {end - start:.2f}s")
 
     # Predict on unseen data
     preds = method_obj.predict(xtest)
@@ -107,7 +111,7 @@ if __name__ == '__main__':
     parser.add_argument('--act_func', type=str, default='relu', help="the activation function used for the model")
 
     ## MLP arguments
-    parser.add_argument('--h_lay_sizes', type=list, default=[512, 256, 128], help="hidden layers sizes")
+    parser.add_argument('--h_lay_sizes', type=str, default="512, 256, 128, 64", help="hidden layers sizes")
 
     ## Transformer arguments 
     parser.add_argument('--chw', type=list, default=[1, 28, 28], help="C = channels (rvb), H = height , W = width")
@@ -128,3 +132,6 @@ if __name__ == '__main__':
     # which can be accessed as "args.data", for example.
     args = parser.parse_args()
     main(args)
+
+    # ================= Best parameters =================
+    # MLP: python main.py --max_iters=80 --lr=1e-4 --h_lay_sizes=512,512,256,256,128,64 --train_part=0.92
