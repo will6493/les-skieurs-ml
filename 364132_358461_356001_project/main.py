@@ -22,7 +22,6 @@ def main(args):
     xtrain, xtest, ytrain = load_data(args.data_path)
     xtrain = xtrain.reshape(xtrain.shape[0], -1)
     xtest = xtest.reshape(xtest.shape[0], -1)
-    
 
     ## 2. Then we must prepare it. This is were you can create a validation set,
     #  normalize, add bias, etc.
@@ -32,22 +31,19 @@ def main(args):
         print("Creating validation test...")
         num_samples = xtrain.shape[0]
         train_part = args.train_part
-        r_inds = np.random.permutation(num_samples) # We shuffle the indices to shuffle the data
-        i_train = int(num_samples * train_part) # Final index of the total data that is used for training
-        
+        r_inds = np.random.permutation(num_samples)  # We shuffle the indices to shuffle the data
+        i_train = int(num_samples * train_part)  # Final index of the total data that is used for training
+
         xtest = xtrain[r_inds[i_train:]]
         ytest = ytrain[r_inds[i_train:]]
         xtrain = xtrain[r_inds[:i_train]]
         ytrain = ytrain[r_inds[:i_train]]
-
-
 
     # Dimensionality reduction (MS2)
     if args.use_pca:
         print("Using PCA")
         pca_obj = PCA(d=args.pca_d)
         ### WRITE YOUR CODE HERE: use the PCA object to reduce the dimensionality of the data
-
 
     ## 3. Initialize the method you want to use.
 
@@ -64,7 +60,7 @@ def main(args):
     elif args.nn_type == "transformer":
         model = MyViT(args.chw, args.n_patches, args.n_blocks, args.hidden_d, args.n_heads, args.out_d)
     else:
-        print(args.nn_type + " is not a valid network architecture (try 'mlp', 'cnn' or 'transformer')")    
+        print(args.nn_type + " is not a valid network architecture (try 'mlp', 'cnn' or 'transformer')")
     summary(model)
 
     # Trainer object
@@ -83,13 +79,11 @@ def main(args):
     macrof1 = macrof1_fn(preds_train, ytrain)
     print(f"\nTrain set: accuracy = {acc:.3f}% - F1-score = {macrof1:.6f}")
 
-
     ## As there are no test dataset labels, check your model accuracy on validation dataset.
     # You can check your model performance on test set by submitting your test set predictions on the AIcrowd competition.
-    acc = accuracy_fn(preds, xtest)
-    macrof1 = macrof1_fn(preds, xtest)
+    acc = accuracy_fn(preds, ytest)
+    macrof1 = macrof1_fn(preds, ytest)
     print(f"Validation set:  accuracy = {acc:.3f}% - F1-score = {macrof1:.6f}")
-
 
     ### WRITE YOUR CODE HERE if you want to add other outputs, visualization, etc.
 
@@ -104,7 +98,8 @@ if __name__ == '__main__':
     parser.add_argument('--data_path', default="../dataset", type=str, help="path to your dataset")
     parser.add_argument('--nn_type', default="mlp",
                         help="which network architecture to use, it can be 'mlp' | 'transformer' | 'cnn'")
-    parser.add_argument('--nn_batch_size', type=int, default=64, help="batch size for NN training")
+    parser.add_argument('--nn_batch_size', type=int, default= 784, help="batch size for NN training")
+    # TODO delete? should never be used, automatically set by the model
     parser.add_argument('--device', type=str, default="cpu",
                         help="Device to use for the training, it can be 'cpu' | 'cuda' | 'mps'")
     parser.add_argument('--use_pca', action="store_true", help="use PCA for feature reduction")
@@ -112,7 +107,7 @@ if __name__ == '__main__':
     parser.add_argument('--act_func', type=str, default='relu', help="the activation function used for the model")
 
     ## MLP arguments
-    parser.add_argument('--h_lay_sizes', type=list, default=None, help="hidden layers sizes")
+    parser.add_argument('--h_lay_sizes', type=list, default=[512, 256, 128], help="hidden layers sizes")
 
     ## Transformer arguments 
     parser.add_argument('--chw', type=list, default=[1, 28, 28], help="C = channels (rvb), H = height , W = width")
@@ -122,12 +117,12 @@ if __name__ == '__main__':
     parser.add_argument('--n_heads', type=int, default=2, help="number of heads in the multi-head attention")
     parser.add_argument('--out_d', type=int, default=10, help="number of output dimensions")
 
-
     parser.add_argument('--lr', type=float, default=1e-5, help="learning rate for methods with learning rate")
     parser.add_argument('--max_iters', type=int, default=100, help="max iters for methods which are iterative")
     parser.add_argument('--test', action="store_true",
                         help="train on whole training data and evaluate on the test data, otherwise use a validation set")
-    parser.add_argument('--train_part', default=0.8, type=float, help="part of the given data used for training (rest is used for test)")
+    parser.add_argument('--train_part', default=0.8, type=float,
+                        help="part of the given data used for training (rest is used for test)")
 
     # "args" will keep in memory the arguments and their values,
     # which can be accessed as "args.data", for example.

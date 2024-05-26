@@ -42,7 +42,7 @@ class MLP(nn.Module):
         self.layers.append(nn.Linear(input_size, hidden_layer_sizes[0]))
 
         # Hidden layers
-        for i in range(1, len(hidden_layer_sizes) - 1):
+        for i in range(1, len(hidden_layer_sizes)):
             self.layers.append(nn.Linear(hidden_layer_sizes[i - 1], hidden_layer_sizes[i]))
 
         # Output layer
@@ -325,7 +325,7 @@ class Trainer(object):
 
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = Adam(model.parameters(), lr=lr)  # compute adaptive learning rates for each parameter
-        """
+
         if torch.cuda.is_available():
             self.device = torch.device("cuda")  # if cuda is available, use it (Nvidia GPU)
         elif torch.backends.mps.is_available():
@@ -334,7 +334,7 @@ class Trainer(object):
             self.device = torch.device("cpu")
         print(f"Using device: {self.device}")
 
-        self.model.to(self.device)"""
+        self.model.to(self.device)
 
     def train_all(self, dataloader):
         """
@@ -366,7 +366,7 @@ class Trainer(object):
         for it, batch in enumerate(dataloader):
             # Load a batch, break it down in images and targets.
             x, y = batch  # x represents the input data (images), and y represents the target labels
-            # TODO x, y = x.to(self.device), y.to(self.device)
+            x, y = x.to(self.device), y.to(self.device)
 
             # Run forward pass.
             logits = self.model(x)
@@ -413,7 +413,7 @@ class Trainer(object):
         with torch.no_grad():  # Disable gradient computation
             for batch in dataloader:
                 x = batch[0]  # Since test_dataset contains only inputs, we use batch[0]
-                # TODO x = x.to(self.device)  # Move input data to the same device
+                x = x.to(self.device)  # Move input data to the same device
 
                 # Run forward pass
                 logits = self.model(x)
@@ -444,7 +444,7 @@ class Trainer(object):
 
         # First, prepare data for pytorch
         train_dataset = TensorDataset(torch.from_numpy(training_data).float(),
-                                      torch.from_numpy(training_labels))
+                                      torch.from_numpy(training_labels).long())
         train_dataloader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
 
         self.train_all(train_dataloader)
