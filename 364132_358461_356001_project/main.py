@@ -140,4 +140,8 @@ if __name__ == '__main__':
 
     # ================= Best parameters =================
     # MLP: python main.py --max_iters=80 --lr=1e-4 --h_lay_sizes=512,512,256,256,128,64 --train_part=0.92
+    #      -> Train set: accuracy = 99.998% - F1-score = 0.999982
+    #      -> Validation set:  accuracy = 86.271% - F1-score = 0.861707
     # CNN: python main.py --max_iters=80 --lr=1e-3 --nn_type=cnn
+    #      -> Train set: accuracy = 100.000% - F1-score = 1.000000
+    #      -> Validation set:  accuracy = 89.167% - F1-score = 0.893344
