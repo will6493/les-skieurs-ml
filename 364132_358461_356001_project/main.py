@@ -56,14 +56,19 @@ def main(args):
     if args.nn_type == "mlp":
         hidden_layer_sizes = [int(size) for size in args.h_lay_sizes.split(',')]
         model = MLP(args.nn_batch_size, n_classes, args.act_func, hidden_layer_sizes)
+        summary(model, input_size=(1, args.nn_batch_size))
     elif args.nn_type == "cnn":
+        xtrain = xtrain.reshape(-1, 1, 28, 28)
+        xtest = xtrain.reshape(-1, 1, 28, 28)
         model = CNN(1, n_classes)
+        summary(model, input_size=(1, 1, 28, 28))
     elif args.nn_type == "transformer":
+        xtrain = xtrain.reshape(-1, 1, 28, 28)
+        xtest = xtrain.reshape(-1, 1, 28, 28)
         model = MyViT(args.chw, args.n_patches, args.n_blocks, args.hidden_d, args.n_heads, args.out_d)
+        summary(model, input_size=(1, 1, 28, 28))
     else:
         print(args.nn_type + " is not a valid network architecture (try 'mlp', 'cnn' or 'transformer')")
-
-    summary(model)
 
     # Trainer object
     method_obj = Trainer(model, lr=args.lr, epochs=args.max_iters, batch_size=args.nn_batch_size)
@@ -102,7 +107,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_path', default="../dataset", type=str, help="path to your dataset")
     parser.add_argument('--nn_type', default="mlp",
                         help="which network architecture to use, it can be 'mlp' | 'transformer' | 'cnn'")
-    parser.add_argument('--nn_batch_size', type=int, default= 784, help="batch size for NN training")
+    parser.add_argument('--nn_batch_size', type=int, default=784, help="batch size for NN training")
     # TODO delete? should never be used, automatically set by the model
     parser.add_argument('--device', type=str, default="cpu",
                         help="Device to use for the training, it can be 'cpu' | 'cuda' | 'mps'")
@@ -135,3 +140,4 @@ if __name__ == '__main__':
 
     # ================= Best parameters =================
     # MLP: python main.py --max_iters=80 --lr=1e-4 --h_lay_sizes=512,512,256,256,128,64 --train_part=0.92
+    # CNN: python main.py --max_iters=80 --lr=1e-3 --nn_type=cnn

@@ -84,7 +84,7 @@ class CNN(nn.Module):
     It should use at least one convolutional layer.
     """
 
-    def __init__(self, input_channels, n_classes):
+    def __init__(self, input_channels, n_classes, filters=(16, 32, 64), filters2 = (128, 64)):
         """
         Initialize the network.
 
@@ -98,11 +98,12 @@ class CNN(nn.Module):
         super(CNN, self).__init__()
 
         # Edit here to modify the model
-        self.conv2d1 = nn.Conv2d(input_channels, 6, 3, padding=1)
-        self.conv2d2 = nn.Conv2d(6, 16, 3, padding=1)
-        self.fc1 = nn.Linear(7 * 7 * 16, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, n_classes)
+        self.conv2d1 = nn.Conv2d(input_channels, filters[0], 3, padding=1)
+        self.conv2d2 = nn.Conv2d(filters[0], filters[1], 3, padding=1)
+        self.conv2d3 = nn.Conv2d(filters[1], filters[2], 3, padding=1)
+        self.fc1 = nn.Linear(3 * 3 * filters[2], filters2[0])
+        self.fc2 = nn.Linear(filters2[0], filters2[1])
+        self.fc3 = nn.Linear(filters2[1], n_classes)
 
     def forward(self, x):
         """
@@ -117,6 +118,7 @@ class CNN(nn.Module):
 
         x = F.max_pool2d(F.relu(self.conv2d1(x)), 2)  # kernel size = 2 --> size of the feature map is reduced by 2
         x = F.max_pool2d(F.relu(self.conv2d2(x)), 2)
+        x = F.max_pool2d(F.relu(self.conv2d3(x)), 2)
         x = x.reshape((x.shape[0], -1))  # or we could use `x.flatten(-3)`
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
