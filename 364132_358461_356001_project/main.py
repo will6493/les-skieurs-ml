@@ -59,12 +59,12 @@ def main(args):
         summary(model, input_size=(1, args.nn_batch_size))
     elif args.nn_type == "cnn":
         xtrain = xtrain.reshape(-1, 1, 28, 28)
-        xtest = xtrain.reshape(-1, 1, 28, 28)
+        xtest = xtest.reshape(-1, 1, 28, 28)
         model = CNN(1, n_classes)
         summary(model, input_size=(1, 1, 28, 28))
     elif args.nn_type == "transformer":
         xtrain = xtrain.reshape(-1, 1, 28, 28)
-        xtest = xtrain.reshape(-1, 1, 28, 28)
+        xtest = xtest.reshape(-1, 1, 28, 28)
         model = MyViT(args.chw, args.n_patches, args.n_blocks, args.hidden_d, args.n_heads, args.out_d)
         summary(model, input_size=(1, 1, 28, 28))
     else:
