@@ -1,6 +1,5 @@
 import numpy as np
 
-## MS2
 
 class PCA(object):
     """
@@ -25,7 +24,7 @@ class PCA(object):
         # the principal components (will be computed from the training data and saved to this variable)
         self.W = None
 
-    def find_principal_components(self, training_data):
+    def find_principal_components(self, training_data: np.array):
         """
         Finds the principal components of the training data and returns the explained variance in percentage.
 
@@ -38,14 +37,31 @@ class PCA(object):
         Returns:
             exvar (float): explained variance of the kept dimensions (in percentage, i.e., in [0,100])
         """
-        ##
-        ###
-        #### WRITE YOUR CODE HERE!
-        ###
-        ##
+        # Compute the mean of data
+        self.mean = np.mean(training_data, axis=0)
+
+        # Center the data with the mean
+        X_tilde = training_data - self.mean
+
+        # Create the covariance matrix
+        C = np.cov(X_tilde, rowvar=False)
+
+        # Compute the eigenvectors and eigenvalues.
+        eigvals, eigvecs = np.linalg.eigh(C)
+
+        # Choose the top d eigenvalues and corresponding eigenvectors.
+        sorted_indices = np.argsort(eigvals)[::-1]
+        eigvals = eigvals[sorted_indices]
+        eigvecs = eigvecs[:, sorted_indices]
+
+        self.W = eigvecs[:, :self.d]
+        eg = eigvals[:self.d]
+
+        # Compute the explained variance
+        exvar = 100 * np.sum(eg) / np.sum(eigvals)
         return exvar
 
-    def reduce_dimension(self, data):
+    def reduce_dimension(self, data: np.array):
         """
         Reduce the dimensionality of the data using the previously computed components.
 
@@ -54,11 +70,9 @@ class PCA(object):
         Returns:
             data_reduced (array): reduced data of shape (N,d)
         """
-        ##
-        ###
-        #### WRITE YOUR CODE HERE!
-        ###
-        ##
-        return data_reduced
-        
+        # Ensure that mean and W have been computed
+        if self.mean is None or self.W is None:
+            raise ValueError(
+                "The principal components have not been computed. Please run find_principal_components() first.")
 
+        return np.dot(data - self.mean, self.W)
