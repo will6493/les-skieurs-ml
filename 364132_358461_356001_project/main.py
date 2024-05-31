@@ -23,7 +23,7 @@ def main(args):
     xtrain = xtrain.reshape(xtrain.shape[0], -1)
     xtest = xtest.reshape(xtest.shape[0], -1)
 
-    ## 2. Then we must prepare it. This is were you can create a validation set,
+    ## 2. Then we must prepare it. This is where you can create a validation set,
     #  normalize, add bias, etc.
 
     # Make a validation set
@@ -43,7 +43,10 @@ def main(args):
     if args.use_pca:
         print("Using PCA")
         pca_obj = PCA(d=args.pca_d)
-        ### WRITE YOUR CODE HERE: use the PCA object to reduce the dimensionality of the data
+        exvar = pca_obj.find_principal_components(xtrain)
+        print(f'The total variance explained by the first {args.pca_d} principal components is {exvar:.3f} %')
+        xtrain = pca_obj.reduce_dimension(xtrain)
+        xtest = pca_obj.reduce_dimension(xtest)
 
     ## 3. Initialize the method you want to use.
 
@@ -55,8 +58,12 @@ def main(args):
 
     if args.nn_type == "mlp":
         hidden_layer_sizes = [int(size) for size in args.h_lay_sizes.split(',')]
-        model = MLP(args.nn_batch_size, n_classes, args.act_func, hidden_layer_sizes)
-        summary(model, input_size=(1, args.nn_batch_size))
+        if args.use_pca:
+            model = MLP(args.pca_d, n_classes, args.act_func, hidden_layer_sizes)
+            summary(model, input_size=(1, args.pca_d))
+        else:
+            model = MLP(args.nn_batch_size, n_classes, args.act_func, hidden_layer_sizes)
+            summary(model, input_size=(1, args.nn_batch_size))
     elif args.nn_type == "cnn":
         xtrain = xtrain.reshape(-1, 1, 28, 28)
         xtest = xtest.reshape(-1, 1, 28, 28)
@@ -82,7 +89,7 @@ def main(args):
 
     # Predict on unseen data
     preds = method_obj.predict(xtest)
-
+    np.save("predictions", preds.numpy())
     ## Report results: performance on train and valid/test sets
     acc = accuracy_fn(preds_train, ytrain)
     macrof1 = macrof1_fn(preds_train, ytrain)
@@ -118,7 +125,7 @@ if __name__ == '__main__':
     ## MLP arguments
     parser.add_argument('--h_lay_sizes', type=str, default="512, 256, 128, 64", help="hidden layers sizes")
 
-    ## Transformer arguments 
+    ## Transformer arguments
     parser.add_argument('--chw', type=list, default=[1, 28, 28], help="C = channels (rvb), H = height , W = width")
     parser.add_argument('--n_patches', type=int, default=7, help="in how much patches is the images divided")
     parser.add_argument('--n_blocks', type=int, default=2, help="number of transformers blocs")
@@ -141,7 +148,10 @@ if __name__ == '__main__':
     # ================= Best parameters =================
     # MLP: python main.py --max_iters=80 --lr=1e-4 --h_lay_sizes=512,512,256,256,128,64 --train_part=0.92
     #      -> Train set: accuracy = 99.998% - F1-score = 0.999982
-    #      -> Validation set:  accuracy = 86.271% - F1-score = 0.861707
+    #      -> Validation set: accuracy = 86.271% - F1-score = 0.861707
+    # MLP (w/PCA) : python main.py --max_iters=35 --lr=1e-4 --h_lay_sizes=512,512,256,256,128,64 --train_part=0.92 --use_pca
+    #      -> Train set: accuracy = 99.357 % - F1 - score = 0.993571
+    #      -> Validation set: accuracy = 85.500 % - F1 - score = 0.855043
     # CNN: python main.py --max_iters=80 --lr=1e-3 --nn_type=cnn
     #      -> Train set: accuracy = 100.000% - F1-score = 1.000000
-    #      -> Validation set:  accuracy = 89.167% - F1-score = 0.893344
+    #      -> Validation set: accuracy = 89.167% - F1-score = 0.893344
