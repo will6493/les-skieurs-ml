@@ -196,7 +196,7 @@ class MyViT(nn.Module):
                     # Flatten the patch and store it.
                     patches[idx, i * self.n_patches + j] = patch.flatten()
 
-        return patches
+        return patches.to(images.device)
 
     def forward(self, x):
         """
@@ -208,8 +208,8 @@ class MyViT(nn.Module):
             preds (tensor): logits of predictions of shape (N, C)
                 Reminder: logits are value pre-softmax.
         """
-        n, Ch, H, W = x.shape
 
+        n, Ch, H, W = x.shape
         # Divide images into patches.
         patches = self.__patchify(x)
 
@@ -217,10 +217,9 @@ class MyViT(nn.Module):
         tokens = self.linear_mapper(patches)
 
         # Add classification token to the tokens.
-        tokens = torch.cat((self.class_token.expand(n, 1, -1), tokens), dim=1)
-
+        tokens = torch.cat((self.class_token.expand(n, 1, -1), tokens), dim=1).to(x.device)
         # Add positional embedding.
-        out = tokens + self.positional_embeddings.repeat(n, 1, 1)
+        out = tokens + self.positional_embeddings.repeat(n, 1, 1).to(x.device)
 
         # Transformer Blocks
         for block in self.blocks:

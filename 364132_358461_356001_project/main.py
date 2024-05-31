@@ -89,7 +89,7 @@ def main(args):
 
     # Predict on unseen data
     preds = method_obj.predict(xtest)
-    np.save("predictions", preds.numpy())
+    np.save("predictions", preds)
     ## Report results: performance on train and valid/test sets
     acc = accuracy_fn(preds_train, ytrain)
     macrof1 = macrof1_fn(preds_train, ytrain)
@@ -97,9 +97,10 @@ def main(args):
 
     ## As there are no test dataset labels, check your model accuracy on validation dataset.
     # You can check your model performance on test set by submitting your test set predictions on the AIcrowd competition.
-    acc = accuracy_fn(preds, ytest)
-    macrof1 = macrof1_fn(preds, ytest)
-    print(f"Validation set:  accuracy = {acc:.3f}% - F1-score = {macrof1:.6f}")
+    if not args.test:
+        acc = accuracy_fn(preds, ytest)
+        macrof1 = macrof1_fn(preds, ytest)
+        print(f"Validation set:  accuracy = {acc:.3f}% - F1-score = {macrof1:.6f}")
 
     ### WRITE YOUR CODE HERE if you want to add other outputs, visualization, etc.
 
