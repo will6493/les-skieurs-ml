@@ -97,6 +97,7 @@ class CNN(nn.Module):
         """
         super(CNN, self).__init__()
 
+        # =========== Model 1 ==================
         # Edit here to modify the model
         self.conv2d1 = nn.Conv2d(input_channels, filters[0], 3, padding=1)
         self.conv2d2 = nn.Conv2d(filters[0], filters[1], 3, padding=1)
@@ -104,18 +105,74 @@ class CNN(nn.Module):
         self.fc1 = nn.Linear(3 * 3 * filters[2], filters2[0])
         self.fc2 = nn.Linear(filters2[0], filters2[1])
         self.fc3 = nn.Linear(filters2[1], n_classes)
+        #============= Model 3 =================
+        # self.features = nn.Sequential(
+        #     # Couche 1
+        #     nn.Conv2d(1, 32, kernel_size=3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(32, 32, kernel_size=3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(32, 32, kernel_size=3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.MaxPool2d(kernel_size=2, stride=2),
+        #
+        #     # Couche 2
+        #     nn.Conv2d(32, 64, kernel_size=3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(64, 64, kernel_size=3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(64, 64, kernel_size=3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.MaxPool2d(kernel_size=2, stride=2),
+        #
+        #     # Couche 3
+        #     nn.Conv2d(64, 128, kernel_size=3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(128, 128, kernel_size=3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(128, 128, kernel_size=3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(128, 128, kernel_size=3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.MaxPool2d(kernel_size=2, stride=2, padding=1)  # padding ajusté pour préserver les dimensions
+        # )
+        #
+        # self.classifier = nn.Sequential(
+        #     nn.Linear(128 * 4 * 4, 512),# Ajuster en fonction de la dimension résultante après les max pooling
+        #     nn.ReLU(inplace=True),
+        #     nn.Linear(512, 512),
+        #     nn.ReLU(inplace=True),
+        #     nn.Linear(512, 256),
+        #     nn.ReLU(inplace=True),
+        #     nn.Linear(256, 256),
+        #     nn.ReLU(inplace=True),
+        #     nn.Linear(256, 256),
+        #     nn.ReLU(inplace=True),
+        #     nn.Linear(256, 128),
+        #     nn.Linear(128, 128),
+        #     nn.ReLU(inplace=True),
+        #     nn.Linear(128, 128),
+        #     nn.Dropout(0.5),
+        #     nn.Linear(128, n_classes)
+        # )
 
     def forward(self, x):
         """
-        Predict the class of a batch of samples with the model.
+                Predict the class of a batch of samples with the model.
 
-        Arguments:
-            x (tensor): input batch of shape (N, Ch, H, W)
-        Returns:
-            preds (tensor): logits of predictions of shape (N, C)
-                Reminder: logits are value pre-softmax.
-        """
+                Arguments:
+                    x (tensor): input batch of shape (N, Ch, H, W)
+                Returns:
+                    preds (tensor): logits of predictions of shape (N, C)
+                        Reminder: logits are value pre-softmax.
+                """
+        #============= Model 3 =================
+        # x = self.features(x)
+        # x = torch.flatten(x, 1)  # Aplatir les données pour le passage dans les couches linéaires
+        # x = self.classifier(x)
+        #return x
 
+        # =========== Model 1 ==================
         x = F.max_pool2d(F.relu(self.conv2d1(x)), 2)  # kernel size = 2 --> size of the feature map is reduced by 2
         x = F.max_pool2d(F.relu(self.conv2d2(x)), 2)
         x = F.max_pool2d(F.relu(self.conv2d3(x)), 2)

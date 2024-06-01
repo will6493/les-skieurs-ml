@@ -116,9 +116,7 @@ if __name__ == '__main__':
     parser.add_argument('--nn_type', default="mlp",
                         help="which network architecture to use, it can be 'mlp' | 'transformer' | 'cnn'")
     parser.add_argument('--nn_batch_size', type=int, default=784, help="batch size for NN training")
-    # TODO delete? should never be used, automatically set by the model
-    parser.add_argument('--device', type=str, default="cpu",
-                        help="Device to use for the training, it can be 'cpu' | 'cuda' | 'mps'")
+
     parser.add_argument('--use_pca', action="store_true", help="use PCA for feature reduction")
     parser.add_argument('--pca_d', type=int, default=100, help="the number of principal components")
     parser.add_argument('--act_func', type=str, default='relu', help="the activation function used for the model")
@@ -147,12 +145,12 @@ if __name__ == '__main__':
     main(args)
 
     # ================= Best parameters =================
-    # MLP: python main.py --max_iters=80 --lr=1e-4 --h_lay_sizes=512,512,256,256,128,64 --train_part=0.92
+    # MLP: python main.py --max_iters=80 --lr=1e-4 --h_lay_sizes=512,512,256,256,128,64
     #      -> Train set: accuracy = 99.998% - F1-score = 0.999982
     #      -> Validation set: accuracy = 86.271% - F1-score = 0.861707
-    # MLP (w/PCA) : python main.py --max_iters=35 --lr=1e-4 --h_lay_sizes=512,512,256,256,128,64 --train_part=0.92 --use_pca
-    #      -> Train set: accuracy = 99.357 % - F1 - score = 0.993571
-    #      -> Validation set: accuracy = 85.500 % - F1 - score = 0.855043
+    # MLP (w/PCA) : python main.py --max_iters=35 --lr=1e-3 --h_lay_sizes=512,512,256,256,128,64 --use_pca --pca_d=128
+    #      -> Train set: accuracy = 99.460% - F1-score = 0.994608
+    #      -> Validation set:  accuracy = 85.608% - F1-score = 0.856856
     # CNN: python main.py --max_iters=80 --lr=1e-3 --nn_type=cnn
     #      -> Train set: accuracy = 100.000% - F1-score = 1.000000
     #      -> Validation set: accuracy = 89.167% - F1-score = 0.893344
